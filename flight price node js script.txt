@@ -1,0 +1,74 @@
+const puppeteer = require("puppeteer");
+
+const to = "New Delhi";
+const from = "Mumbai";
+const leaveDate = "7-17-2023"; // mm-dd-yyyy format
+
+async function getFlightsFromPage(page) {
+    return await page.evaluate(() =>
+      Array.from(document.querySelectorAll(".pIav2d")).map((el) => {
+        const thumbnailString = el.querySelector(".EbY4Pc")?.getAttribute("style");
+        const startIndex = thumbnailString?.indexOf("url(");
+        const endIndex = thumbnailString?.indexOf(";");
+        const thumbnail = thumbnailString?.slice(startIndex + 4, endIndex - 1).replaceAll("\\", "") || "No thumbnail";
+        const layover = el.querySelector(".BbR8Ec .sSHqwe")?.getAttribute("aria-label");
+        return {
+          thumbnail,
+          companyName: el.querySelector(".Ir0Voe .sSHqwe")?.textContent.trim(),
+          description: el.querySelector(".mv1WYe")?.getAttribute("aria-label"),
+          duration: el.querySelector(".gvkrdb")?.textContent.trim(),
+          airportLeave: el.querySelectorAll(".Ak5kof .sSHqwe .eoY5cb")[0]?.textContent.trim(),
+          airportArive: el.querySelectorAll(".Ak5kof .sSHqwe .eoY5cb")[1]?.textContent.trim(),
+          layover: layover || "Nonstop",
+          emisions: el.querySelector(".V1iAHe > div")?.getAttribute("aria-label").replace(". Learn more about this emissions estimate", " "),
+          price: el.querySelector(".U3gSDe .YMlIz > span")?.textContent.trim(),
+          priceDescription: el.querySelector(".U3gSDe .JMnxgf > span > span > span")?.getAttribute("aria-label"),
+        };
+      })
+    );
+  }
+async function loadPage(){
+  var browser = await puppeteer.launch();
+  var page = await browser.newPage();
+  await page.goto('https://www.google.com/travel/flights?tfs=CBwQARoaEgoyMDIzLTA2LTIwagwIAhIIL20vMGRsdjBAAUgBcAGCAQsI____________AZgBAg');
+
+  
+  const inputs = await page.$$(".e5F5td");
+  await inputs[0].click();
+  await page.waitForTimeout(1000);
+  await page.keyboard.type(from);
+  await page.keyboard.press("Enter");
+
+  await inputs[1].click();
+  await page.waitForTimeout(1000);
+  await page.keyboard.type(to);
+  await page.waitForTimeout(1000);
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(1000);
+ 
+  await page.click(".TP4Lpb");
+  await page.waitForTimeout(1000);
+  await page.keyboard.type(leaveDate);
+  await page.waitForTimeout(1000);
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(1000);
+ 
+  
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(1000);
+  
+  
+  await page.click('#yDmH0d > c-wiz.zQTmif.SSPGKf > div > div:nth-child(2) > c-wiz > div.cKvRXe > c-wiz > div.vg4Z0e > div:nth-child(1) > div.SS6Dqf.POQx1c > div.MXvFbd > div > button');
+//   await page.evaluate( () => {
+//     window.scrollBy(0, window.innerHeight);
+//   });
+  await page.waitForTimeout(3000);
+
+  await page.screenshot({path: "phto.png"});
+  const flights = await getFlightsFromPage(page);
+  await browser.close();
+  return flights;
+
+}
+loadPage().then(console.log);
+
